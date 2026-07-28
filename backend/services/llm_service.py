@@ -1,6 +1,6 @@
 from openai import OpenAI
 
-from config import DEPLOYMENT_NAME, FOUNDRY_API_KEY, FOUNDRY_ENDPOINT
+from backend.config import DEPLOYMENT_NAME, FOUNDRY_API_KEY, FOUNDRY_ENDPOINT
 
 
 def _get_base_url(endpoint: str) -> str:

@@ -1,9 +1,10 @@
 """Persist and retrieve conversation messages."""
 
-from database.supabase import get_supabase_client
-from services.llm_service import ask_llm
-from services.prompt_service import build_prompt
-from utils.validators import require_text
+from backend.database.supabase import get_supabase_client
+from backend.services.llm_service import ask_llm
+from backend.services.prompt_service import build_prompt
+from backend.utils.validators import require_text
+from backend.config import DEFAULT_SYSTEM_PROMPT
 
 
 def save_message(session_id: str, filename: str, question: str, answer: str) -> None:
@@ -101,6 +102,7 @@ def submit_question(
     """
     session_id = require_text(session_id, "Session ID")
     filename = require_text(filename, "Filename")
+    system_prompt = require_text(system_prompt, "System prompt")
     question = require_text(question, "Question")
     if not context.strip():
         raise ValueError("Upload a UTF-8 text file before asking a question.")

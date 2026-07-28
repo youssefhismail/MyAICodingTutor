@@ -1,6 +1,6 @@
 """Read and validate an uploaded text file."""
 
-from config import MAX_FILE_SIZE
+from frontend.config import MAX_FILE_SIZE
 
 
 def validate_file(uploaded_file) -> None:

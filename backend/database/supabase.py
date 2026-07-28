@@ -2,7 +2,7 @@
 
 from supabase import Client, create_client
 
-from config import SUPABASE_KEY, SUPABASE_URL
+from backend.config import SUPABASE_KEY, SUPABASE_URL
 
 
 def get_supabase_client() -> Client:
