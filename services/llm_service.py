@@ -3,21 +3,23 @@ from openai import OpenAI
 from config import DEPLOYMENT_NAME, FOUNDRY_API_KEY, FOUNDRY_ENDPOINT
 
 
+def _get_base_url(endpoint: str) -> str:
+    """Return one OpenAI v1 base URL from either supported endpoint form."""
+    normalized_endpoint = endpoint.rstrip("/")
+    if normalized_endpoint.endswith("/openai/v1"):
+        return f"{normalized_endpoint}/"
+    return f"{normalized_endpoint}/openai/v1/"
+
+
 def ask_llm(prompt: str) -> str:
+    """Send one prompt to Azure AI Foundry and return its text answer."""
     if not FOUNDRY_ENDPOINT or not FOUNDRY_API_KEY or not DEPLOYMENT_NAME:
         raise RuntimeError(
             "Azure AI Foundry is not configured. Set FOUNDRY_ENDPOINT, "
             "FOUNDRY_API_KEY, and DEPLOYMENT_NAME."
         )
-    if "/api/projects/" not in FOUNDRY_ENDPOINT:
-        raise RuntimeError(
-            "FOUNDRY_ENDPOINT must be the complete Foundry Project endpoint. "
-            "Copy it from Foundry and use the form "
-            "https://<account>.services.ai.azure.com/api/projects/<project-name>."
-        )
-    base_url = f"{FOUNDRY_ENDPOINT}/openai/v1"
     client = OpenAI(
-        base_url=base_url,
+        base_url=_get_base_url(FOUNDRY_ENDPOINT),
         api_key=FOUNDRY_API_KEY,
         default_headers={"api-key": FOUNDRY_API_KEY},
     )

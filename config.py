@@ -8,9 +8,10 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
 
-
-load_dotenv(BASE_DIR.parent / ".env")
-load_dotenv(BASE_DIR / ".env", override=False)
+APP_ENV_FILE = BASE_DIR / ".env"
+WORKSPACE_ENV_FILE = BASE_DIR.parent / ".env"
+ENV_FILE = APP_ENV_FILE if APP_ENV_FILE.is_file() else WORKSPACE_ENV_FILE
+load_dotenv(ENV_FILE, override=True)
 
 
 FOUNDRY_ENDPOINT = os.getenv("FOUNDRY_ENDPOINT", "").rstrip("/")
