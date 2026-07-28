@@ -38,6 +38,7 @@ This project is being developed incrementally following modern AI engineering pr
 
 - Python
 - Streamlit
+- FastAPI
 - Azure AI Foundry
 - Supabase (PostgreSQL)
 
@@ -52,10 +53,10 @@ This project is being developed incrementally following modern AI engineering pr
 ## Architecture
 
 ```
-                Streamlit
+                Streamlit Frontend
                     │
                     ▼
-              Application Layer
+                FastAPI Backend
                     │
         ┌───────────┴───────────┐
         ▼                       ▼
@@ -88,22 +89,20 @@ Future architecture:
 ## Project Structure
 
 ```
-file-ai/
+MyAICodingTutor/
 │
-├── app.py
-├── config.py
+├── backend/
+│   ├── api/
+│   ├── database/
+│   ├── models/
+│   ├── services/
+│   ├── utils/
+│   ├── config.py
+│   └── main.py
 │
-├── services/
-│   ├── file_service.py
-│   ├── prompt_service.py
-│   ├── llm_service.py
-│   └── chat_service.py
-│
-├── database/
-│   └── supabase.py
-│
-├── utils/
-│   └── validators.py
+├── frontend/
+│   ├── app.py
+│   └── ui/
 │
 └── requirements.txt
 ```
@@ -181,9 +180,19 @@ SUPABASE_KEY=
 
 ### Run
 
+Start the backend:
+
 ```bash
-streamlit run app.py
+uvicorn backend.main:app --reload
 ```
+
+Then start the frontend:
+
+```bash
+streamlit run frontend/app.py
+```
+
+If the backend is not on the default URL, set `BACKEND_BASE_URL` in your `.env` file.
 
 ---
 
