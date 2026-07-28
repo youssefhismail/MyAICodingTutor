@@ -43,6 +43,40 @@ def load_messages(session_id: str) -> list[dict[str, str]]:
     return response.data or []
 
 
+def load_conversation_summaries() -> list[dict[str, str]]:
+    """Load one summary row per session for the sidebar."""
+    try:
+        response = (
+            get_supabase_client()
+            .table("messages")
+            .select("session_id, filename, question, created_at")
+            .order("created_at")
+            .execute()
+        )
+    except Exception as error:
+        raise RuntimeError(f"Supabase load failed: {error}") from error
+
+    summaries: list[dict[str, str]] = []
+    seen_sessions: set[str] = set()
+
+    for message in response.data or []:
+        session_id = str(message["session_id"])
+        if session_id in seen_sessions:
+            continue
+
+        seen_sessions.add(session_id)
+        summaries.append(
+            {
+                "session_id": session_id,
+                "filename": message.get("filename", ""),
+                "first_question": message.get("question", ""),
+                "created_at": message.get("created_at", ""),
+            }
+        )
+
+    return list(reversed(summaries))
+
+
 def delete_messages(session_id: str) -> None:
     """Delete all persisted messages for one session."""
     session_id = require_text(session_id, "Session ID")
@@ -57,6 +91,7 @@ def submit_question(
     filename: str,
     system_prompt: str,
     context: str,
+    chat_history: list[dict[str, str]],
     question: str,
 ) -> dict[str, str]:
     """
@@ -70,7 +105,11 @@ def submit_question(
     if not context.strip():
         raise ValueError("Upload a UTF-8 text file before asking a question.")
 
-    prompt = build_prompt(system_prompt, context, question)
+    # The UI appends the current exchange only after this function returns.
+    # Take a snapshot so the prompt contains every prior message in this
+    # session, but never the question currently being answered.
+    prior_chat_history = list(chat_history)
+    prompt = build_prompt(system_prompt, context, prior_chat_history, question)
     answer = ask_llm(prompt)
     save_message(session_id=session_id, filename=filename, question=question, answer=answer)
     return {
