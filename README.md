@@ -125,17 +125,18 @@ Each module has a single responsibility, making the project modular, reusable, a
 
 ### 🚧 V2
 
+- FastAPI backend
+- Docker
+- Multi-file support
+- Repository analysis
+
+### 🚧 V3
+
 - RAG
 - Embeddings
 - pgvector
 - Semantic search
 
-### 🚧 V3
-
-- FastAPI backend
-- Docker
-- Multi-file support
-- Repository analysis
 
 ---
 
