@@ -21,6 +21,7 @@ DEPLOYMENT_NAME = os.getenv("DEPLOYMENT_NAME", "")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", str(50 * 1024)))
+MAX_UPLOAD_SIZE = int(os.getenv("MAX_UPLOAD_SIZE", str(5 * 1024 * 1024)))
 
 DEFAULT_SYSTEM_PROMPT = """
 You are an expert programming assistant.

@@ -1,174 +1,176 @@
-# FileAI
+# MyAICodingTutor
 
-An AI-powered file assistant that enables users to upload code or text files and interact with them using natural language. The assistant analyzes the uploaded file and answers questions based solely on its contents, making it useful for understanding code, documentation, notes, and other text-based resources.
+An AI-powered coding tutor that allows users to upload source code or text files and ask natural language questions about them. The application uses Azure AI Foundry to generate context-aware responses while FastAPI handles the backend API and Supabase persists uploaded documents and conversation history.
 
-This project is being developed incrementally following modern AI engineering practices. The initial version focuses on a single uploaded file and a single conversation, with future versions introducing Retrieval-Augmented Generation (RAG), vector search, FastAPI, and Docker deployment.
-
----
-
-## Features
-
-### Version 1 (Current)
-
-- Upload a single file (`.py`, `.js`, `.ts`, `.txt`, `.md`, etc.)
-- Chat with the uploaded file
-- AI responses grounded in the file's contents
-- Editable system prompt
-- Conversation history during the session
-- Chat persistence using Supabase
-- Modular architecture with reusable functions
-
-### Planned Features
-
-- Retrieval-Augmented Generation (RAG)
-- Embedding generation
-- Semantic search with pgvector
-- Multi-file & repository support
-- FastAPI backend
-- Docker containerization
-- Richer UI
-- Authentication & user sessions
-- Conversation memory
+This project was built as part of my Machine Learning internship to explore modern AI application architecture, backend development, and LLM integration.
 
 ---
 
-## Tech Stack
+# Features
 
-### Current
+## Current
+
+- Upload a single source code or text file
+- Ask questions about the uploaded document
+- AI responses grounded in the uploaded file
+- Persistent chat history stored in Supabase
+- Session-based conversations
+- FastAPI REST API backend
+- Streamlit frontend
+- Modular service-oriented architecture
+- Azure AI Foundry integration
+- Document persistence independent of the frontend
+
+---
+
+# Tech Stack
+
+## Frontend
+
+- Streamlit
+
+## Backend
+
+- FastAPI
+- Pydantic
+
+## AI
+
+- Azure AI Foundry
+
+## Database
+
+- Supabase
+- PostgreSQL
+
+## Language
 
 - Python
-- Streamlit
-- FastAPI
-- Azure AI Foundry
-- Supabase (PostgreSQL)
-
-### Planned
-
-- Supabase Vector (pgvector)
-- FastAPI
-- Docker
 
 ---
 
-## Architecture
+# Architecture
 
 ```
                 Streamlit Frontend
-                    │
-                    ▼
-                FastAPI Backend
-                    │
-        ┌───────────┴───────────┐
-        ▼                       ▼
-   Supabase DB            Azure AI Foundry
-(PostgreSQL)                 (LLM)
+                        │
+                        ▼
+                 FastAPI Backend
+                        │
+        ┌───────────────┼────────────────┐
+        ▼               ▼                ▼
+ Document Service   Chat Service    Session Service
+        │               │
+        └───────────────┼───────────────┐
+                        ▼               ▼
+                  Supabase        Azure AI Foundry
+                 PostgreSQL            LLM
 ```
 
-Future architecture:
+The frontend is responsible only for user interaction.
 
-```
-                Streamlit
-                    │
-                    ▼
-                FastAPI
-                    │
-                    ▼
-          Retrieval Pipeline (RAG)
-                    │
-        ┌───────────┴────────────┐
-        ▼                        ▼
- Supabase (PostgreSQL)    Supabase Vector
-                              (pgvector)
-                    │
-                    ▼
-             Azure AI Foundry
-```
+The backend owns:
+
+- uploaded documents
+- conversation history
+- prompt construction
+- communication with the LLM
+
+This separation keeps the frontend lightweight while centralizing business logic inside the API.
 
 ---
 
-## Project Structure
+# Project Structure
 
 ```
 MyAICodingTutor/
 │
 ├── backend/
 │   ├── api/
+│   │   ├── chat.py
+│   │   ├── sessions.py
+│   │   └── upload.py
+│   │
 │   ├── database/
+│   │   └── supabase.py
+│   │
 │   ├── models/
+│   │   ├── requests.py
+│   │   └── responses.py
+│   │
 │   ├── services/
+│   │   ├── chat_service.py
+│   │   ├── llm_service.py
+│   │   ├── prompt_service.py
+│   │   └── upload_service.py
+│   │
 │   ├── utils/
 │   ├── config.py
 │   └── main.py
 │
 ├── frontend/
+│   ├── api/
+│   ├── services/
+│   ├── ui/
 │   ├── app.py
-│   └── ui/
+│   └── config.py
 │
-└── requirements.txt
+├── requirements.txt
+└── README.md
 ```
 
-Each module has a single responsibility, making the project modular, reusable, and easy to extend.
+The project follows a layered architecture where:
+
+- API routes handle HTTP requests.
+- Services contain business logic.
+- Database helpers encapsulate all Supabase operations.
+- Models define request and response schemas.
 
 ---
 
-## Development Roadmap
+# Database Design
 
-### ✅ V1
+Conversation history is stored using a message-based schema similar to modern chat APIs.
 
-- Upload one file
-- One conversation
-- Ask questions about the file
-- Streamlit UI
-- Azure AI Foundry
-- Supabase persistence
+Each message is stored as an individual record:
 
-### 🚧 V2
+| role | content |
+|------|---------|
+| user | Question |
+| assistant | Response |
 
-- FastAPI backend
-- Docker
-- Multi-file support
-- Repository analysis
+This design makes conversations easier to extend with future roles such as:
 
-### 🚧 V3
+- system
+- tool
 
-- RAG
-- Embeddings
-- pgvector
-- Semantic search
+and aligns with the OpenAI/Azure chat message format.
 
+Uploaded documents are stored separately and associated with a session.
 
 ---
 
-## Future Ideas
+# Running the Project
 
-- Explain functions and classes
-- Detect potential bugs
-- Summarize files
-- Generate documentation
-- Code review assistant
-- Repository-wide search
-- GitHub integration
-
----
-
-## Getting Started
-
-### Clone the repository
+## 1. Clone the repository
 
 ```bash
-git clone https://github.com/<username>/FileAI.git
-cd FileAI
+git clone https://github.com/<your-username>/MyAICodingTutor.git
+
+cd MyAICodingTutor
 ```
 
-### Install dependencies
+## 2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Configure environment variables
+## 3. Configure environment variables
 
-Create a `.env` file and add:
+Create a `.env` file.
+
+Example:
 
 ```env
 AZURE_API_KEY=
@@ -177,32 +179,89 @@ AZURE_DEPLOYMENT_NAME=
 
 SUPABASE_URL=
 SUPABASE_KEY=
+
+BACKEND_BASE_URL=http://localhost:8000
 ```
 
-### Run
+---
 
-Start the backend:
+## 4. Start the backend
 
 ```bash
 uvicorn backend.main:app --reload
 ```
 
-Then start the frontend:
+---
+
+## 5. Start the frontend
 
 ```bash
 streamlit run frontend/app.py
 ```
 
-If the backend is not on the default URL, set `BACKEND_BASE_URL` in your `.env` file.
+---
+
+# Current Workflow
+
+1. Create a new chat session.
+2. Upload a supported source code or text file.
+3. The backend stores the document in Supabase.
+4. Ask questions about the uploaded file.
+5. Conversation history is automatically persisted.
+6. Previous sessions can be revisited.
 
 ---
 
-## Goal
+# Supported Files
 
-The purpose of this project is to explore modern AI application development by combining Large Language Models with modular software architecture, conversational interfaces, and scalable backend technologies. The project will progressively evolve from a simple file-aware assistant into a production-style AI application utilizing Retrieval-Augmented Generation (RAG) and semantic search.
+Examples include:
+
+- `.py`
+- `.java`
+- `.cpp`
+- `.c`
+- `.js`
+- `.ts`
+- `.html`
+- `.css`
+- `.md`
+- `.txt`
+
+Additional text-based formats can be added easily.
 
 ---
 
-## License
+# Future Improvements
 
-MIT License
+- Retrieval-Augmented Generation (RAG)
+- Embeddings
+- pgvector integration
+- Repository-wide analysis
+- Multi-file projects
+- Authentication
+- User accounts
+- Streaming responses
+- Docker deployment
+- CI/CD pipeline
+
+---
+
+# Learning Objectives
+
+This project was built to gain hands-on experience with:
+
+- Large Language Model integration
+- FastAPI backend development
+- REST API design
+- Service-oriented architecture
+- PostgreSQL database design
+- Supabase
+- Prompt engineering
+- AI application development
+- Full-stack Python development
+
+---
+
+# License
+
+This project is intended for educational and portfolio purposes.

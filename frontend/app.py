@@ -9,39 +9,18 @@ from frontend.api.backend_client import (
     load_conversation_summaries,
     load_session_messages,
     submit_question,
+    upload_file,
 )
-from frontend import config as frontend_config
-from frontend.services.file_service import load_file
 from frontend.ui.render_service import render_chat
 from frontend.ui.sidebar_service import render_sidebar
-
-
-DEFAULT_SYSTEM_PROMPT = getattr(
-    frontend_config,
-    "DEFAULT_SYSTEM_PROMPT",
-    """
-You are an expert programming assistant.
-
-Use the uploaded file as the primary source of truth.
-
-If the question cannot be answered from the uploaded file, say that the information is unavailable instead of inventing an answer.
-
-Do not make assumptions beyond what appears in the uploaded file.
-
-If the user asks about previous messages in the current conversation, answer using the conversation history.
-
-If the answer cannot be found in either the uploaded file or the conversation history, clearly say so instead of making something up.
-""".strip(),
-)
 
 
 def initialise_session() -> None:
     """Initialise Streamlit session state."""
 
     st.session_state.setdefault("session_id", str(uuid4()))
-    st.session_state.setdefault("context", "")
     st.session_state.setdefault("filename", "")
-    st.session_state.setdefault("system_prompt", DEFAULT_SYSTEM_PROMPT)
+    st.session_state.setdefault("document_id", "")
     st.session_state.setdefault("messages", None)
     st.session_state.setdefault("session_contexts", {})
     st.session_state.setdefault("uploader_key", 0)
@@ -58,23 +37,23 @@ def initialise_session() -> None:
 
 
 def cache_active_session_assets() -> None:
-    """Cache the uploaded file for the active session."""
+    """Cache the upload metadata for the active session."""
 
-    if st.session_state.context:
+    if st.session_state.filename:
         st.session_state.session_contexts[st.session_state.session_id] = {
-            "context": st.session_state.context,
             "filename": st.session_state.filename,
+            "document_id": st.session_state.document_id,
         }
 
 
 def restore_session_assets(session_id: str) -> None:
-    """Restore cached file information for a session."""
+    """Restore cached upload metadata for a session."""
 
     cached = st.session_state.session_contexts.get(session_id)
 
     if cached:
-        st.session_state.context = cached.get("context", "")
         st.session_state.filename = cached.get("filename", "")
+        st.session_state.document_id = cached.get("document_id", "")
 
 
 def start_new_chat() -> None:
@@ -83,8 +62,8 @@ def start_new_chat() -> None:
     cache_active_session_assets()
 
     st.session_state.session_id = str(uuid4())
-    st.session_state.context = ""
     st.session_state.filename = ""
+    st.session_state.document_id = ""
     st.session_state.messages = []
     st.session_state.uploader_key += 1
 
@@ -101,8 +80,8 @@ def open_conversation(session_id: str) -> None:
     except RuntimeError:
         st.session_state.messages = []
 
-    st.session_state.context = ""
     st.session_state.filename = ""
+    st.session_state.document_id = ""
     st.session_state.uploader_key += 1
 
     restore_session_assets(session_id)
@@ -127,12 +106,18 @@ def upload_section() -> None:
             "py",
             "js",
             "ts",
-            "md",
+            "java",
+            "cpp",
+            "c",
+            "cs",
+            "go",
+            "rs",
+            "php",
+            "rb",
+            "swift",
+            "kt",
             "txt",
-            "json",
-            "html",
-            "css",
-            "ipynb",
+            "md",
         ],
         label_visibility="collapsed",
         key=f"file_uploader_{st.session_state.uploader_key}",
@@ -142,12 +127,17 @@ def upload_section() -> None:
         return
 
     try:
-        st.session_state.context = load_file(uploaded_file)
+        result = upload_file(
+            session_id=st.session_state.session_id,
+            uploaded_file=uploaded_file,
+        )
         st.session_state.filename = uploaded_file.name
+        st.session_state.document_id = result.get("document_id", "")
         cache_active_session_assets()
-    except ValueError as error:
-        st.session_state.context = ""
+        st.success(f"✅ {result.get('message', 'Upload successful')}")
+    except RuntimeError as error:
         st.session_state.filename = ""
+        st.session_state.document_id = ""
         st.error(str(error))
 
 
@@ -185,10 +175,6 @@ def chat_section() -> None:
         with st.spinner("Thinking..."):
             message = submit_question(
                 session_id=st.session_state.session_id,
-                filename=st.session_state.filename,
-                system_prompt=st.session_state.system_prompt,
-                context=st.session_state.context,
-                chat_history=st.session_state.messages,
                 question=question,
             )
 
