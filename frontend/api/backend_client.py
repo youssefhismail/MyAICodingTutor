@@ -44,6 +44,15 @@ def delete_session(session_id: str) -> None:
     _request("DELETE", f"/sessions/{session_id}", timeout=30)
 
 
+def load_session_documents(session_id: str) -> list[dict[str, str]]:
+    response = _request("GET", f"/sessions/{session_id}/documents", timeout=30)
+    return response.json()
+
+
+def delete_document(document_id: str) -> None:
+    _request("DELETE", f"/documents/{document_id}", timeout=30)
+
+
 def submit_question(
     session_id: str,
     question: str,

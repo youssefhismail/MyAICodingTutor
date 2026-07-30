@@ -1,7 +1,7 @@
 """Orchestrate conversation interactions."""
 
 from backend.database.supabase import (
-    get_document_by_session,
+    get_documents_by_session,
     save_exchange,
     load_first_user_messages,
     load_messages,
@@ -15,7 +15,7 @@ from backend.config import DEFAULT_SYSTEM_PROMPT
 def load_conversation_summaries() -> list[dict[str, str]]:
     """Load one summary row per session for the sidebar.
 
-    Combines the first user message from each session with the filename
+    Combines the first user message from each session with the filename(s)
     from the documents table.  Returns newest-first.
     """
     first_messages = load_first_user_messages()
@@ -24,8 +24,11 @@ def load_conversation_summaries() -> list[dict[str, str]]:
     for message in first_messages:
         session_id = str(message["session_id"])
 
-        document = get_document_by_session(session_id)
-        filename = document.get("filename", "") if document else ""
+        documents = get_documents_by_session(session_id)
+        if len(documents) == 0:
+            filename = ""
+        else:
+            filename = ", ".join(doc.filename for doc in documents)
 
         summaries.append(
             {
@@ -54,17 +57,13 @@ def submit_question(
     session_id = require_text(session_id, "Session ID")
     question = require_text(question, "Question")
 
-    document = get_document_by_session(session_id)
-    if not document:
+    documents = get_documents_by_session(session_id)
+    if not documents:
         raise ValueError("Upload a file before asking a question.")
-
-    context = document.get("content", "")
-    if not context.strip():
-        raise ValueError("The uploaded document is empty.")
 
     chat_history = load_messages(session_id)
 
-    prompt = build_prompt(DEFAULT_SYSTEM_PROMPT, context, chat_history, question)
+    prompt = build_prompt(DEFAULT_SYSTEM_PROMPT, documents, chat_history, question)
     answer = ask_llm(prompt)
     save_exchange(session_id=session_id, question=question, answer=answer)
     return {

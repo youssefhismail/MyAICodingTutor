@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from backend.api.chat import router as chat_router
 from backend.api.sessions import router as sessions_router
 from backend.api.upload import router as upload_router
+from backend.api.documents import router as documents_router
 
 
 app = FastAPI(
@@ -15,12 +16,14 @@ app = FastAPI(
         {"name": "chat", "description": "Chat endpoints"},
         {"name": "sessions", "description": "Conversation management"},
         {"name": "upload", "description": "File upload endpoints"},
+        {"name": "documents", "description": "Document management"},
     ],
 )
 
 app.include_router(chat_router)
 app.include_router(sessions_router)
 app.include_router(upload_router)
+app.include_router(documents_router)
 
 
 @app.get("/health")
