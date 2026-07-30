@@ -3,6 +3,8 @@
 import logging
 
 
+from backend.models.domain import DocumentContext
+
 logger = logging.getLogger(__name__)
 
 # Set to True only while diagnosing prompt/context issues. It is disabled for
@@ -12,18 +14,25 @@ DEBUG_CONVERSATION_CONTEXT = False
 
 def build_prompt(
     system_prompt: str,
-    context: str,
+    documents: list[DocumentContext],
     chat_history: list[dict[str, str]],
     question: str,
 ) -> str:
     history_text = _format_chat_history(chat_history)
 
+    context = ""
+    for doc in documents:
+        filename = doc.filename
+        content = doc.content.strip()
+        if content:
+            context += f"\n--- FILE: {filename} ---\n{content}\n--- END FILE ---\n"
+
     prompt = f"""SYSTEM INSTRUCTIONS
 {system_prompt}
 
 SOURCE RULES
-1. For file-related questions, the Uploaded File is the primary and only
-   source of truth. Do not invent information that is absent from it.
+1. For file-related questions, the Uploaded Files are the primary and only
+   source of truth. Do not invent information that is absent from them.
 2. For questions about earlier messages, the Conversation History is the
    source of truth. It contains only messages that occurred before the
    Current Question.
@@ -32,9 +41,9 @@ SOURCE RULES
    Never treat the Current Question as a previous question or earlier message.
 4. If the needed information is in neither relevant source, say so plainly.
 
---- UPLOADED FILE ---
+--- UPLOADED FILES ---
 {context}
---- END UPLOADED FILE ---
+--- END UPLOADED FILES ---
 
 --- CONVERSATION HISTORY (PRIOR MESSAGES ONLY) ---
 {history_text}

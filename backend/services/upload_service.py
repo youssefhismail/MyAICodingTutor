@@ -5,7 +5,7 @@ from pathlib import PurePath
 from fastapi import UploadFile
 
 from backend.config import MAX_UPLOAD_SIZE
-from backend.database.supabase import upsert_document
+from backend.database.supabase import delete_document, insert_document
 from backend.utils.validators import require_text
 
 
@@ -75,10 +75,16 @@ async def process_upload(session_id: str, file: UploadFile) -> dict[str, str]:
     # embeddings = generate_embeddings(chunks)
     # store with embeddings
 
-    row = upsert_document(session_id, filename, content)
+    row = insert_document(session_id, filename, content)
 
     return {
         "document_id": str(row.get("id", "")),
         "filename": filename,
         "message": "Upload successful",
     }
+
+
+def remove_document(document_id: str) -> None:
+    """Remove a document from the session."""
+    document_id = require_text(document_id, "Document ID")
+    delete_document(document_id)

@@ -10,6 +10,8 @@ from frontend.api.backend_client import (
     load_session_messages,
     submit_question,
     upload_file,
+    load_session_documents,
+    delete_document,
 )
 from frontend.ui.render_service import render_chat
 from frontend.ui.sidebar_service import render_sidebar
@@ -19,10 +21,8 @@ def initialise_session() -> None:
     """Initialise Streamlit session state."""
 
     st.session_state.setdefault("session_id", str(uuid4()))
-    st.session_state.setdefault("filename", "")
-    st.session_state.setdefault("document_id", "")
+    st.session_state.setdefault("documents", [])
     st.session_state.setdefault("messages", None)
-    st.session_state.setdefault("session_contexts", {})
     st.session_state.setdefault("uploader_key", 0)
 
     if st.session_state.messages is None:
@@ -33,45 +33,29 @@ def initialise_session() -> None:
         except RuntimeError:
             st.session_state.messages = []
 
-    restore_session_assets(st.session_state.session_id)
+    if not st.session_state.documents:
+        try:
+            st.session_state.documents = load_session_documents(
+                st.session_state.session_id
+            )
+        except RuntimeError:
+            st.session_state.documents = []
 
 
-def cache_active_session_assets() -> None:
-    """Cache the upload metadata for the active session."""
 
-    if st.session_state.filename:
-        st.session_state.session_contexts[st.session_state.session_id] = {
-            "filename": st.session_state.filename,
-            "document_id": st.session_state.document_id,
-        }
-
-
-def restore_session_assets(session_id: str) -> None:
-    """Restore cached upload metadata for a session."""
-
-    cached = st.session_state.session_contexts.get(session_id)
-
-    if cached:
-        st.session_state.filename = cached.get("filename", "")
-        st.session_state.document_id = cached.get("document_id", "")
 
 
 def start_new_chat() -> None:
     """Start a brand-new conversation."""
 
-    cache_active_session_assets()
-
     st.session_state.session_id = str(uuid4())
-    st.session_state.filename = ""
-    st.session_state.document_id = ""
+    st.session_state.documents = []
     st.session_state.messages = []
     st.session_state.uploader_key += 1
 
 
 def open_conversation(session_id: str) -> None:
     """Load an existing conversation."""
-
-    cache_active_session_assets()
 
     st.session_state.session_id = session_id
 
@@ -80,28 +64,21 @@ def open_conversation(session_id: str) -> None:
     except RuntimeError:
         st.session_state.messages = []
 
-    st.session_state.filename = ""
-    st.session_state.document_id = ""
+    try:
+        st.session_state.documents = load_session_documents(session_id)
+    except RuntimeError:
+        st.session_state.documents = []
+
     st.session_state.uploader_key += 1
-
-    restore_session_assets(session_id)
-
-    if (
-        not st.session_state.filename
-        and st.session_state.messages
-    ):
-        st.session_state.filename = (
-            st.session_state.messages[0].get("filename", "")
-        )
 
 
 def upload_section() -> None:
     """Render the upload widget."""
 
-    st.subheader("📂 Upload File")
+    st.subheader("📂 Upload Files")
 
-    uploaded_file = st.file_uploader(
-        "Upload a file",
+    uploaded_files = st.file_uploader(
+        "Upload files",
         type=[
             "py",
             "js",
@@ -121,24 +98,45 @@ def upload_section() -> None:
         ],
         label_visibility="collapsed",
         key=f"file_uploader_{st.session_state.uploader_key}",
+        accept_multiple_files=True,
     )
 
-    if uploaded_file is None:
-        return
+    if uploaded_files:
+        if st.button("Upload Selected Files"):
+            for uploaded_file in uploaded_files:
+                try:
+                    result = upload_file(
+                        session_id=st.session_state.session_id,
+                        uploaded_file=uploaded_file,
+                    )
+                    st.session_state.documents.append({
+                        "document_id": result.get("document_id", ""),
+                        "filename": uploaded_file.name,
+                    })
+                    st.success(f"✅ {uploaded_file.name} uploaded successfully")
+                except RuntimeError as error:
+                    st.error(f"Failed to upload {uploaded_file.name}: {str(error)}")
+            
+            st.session_state.uploader_key += 1
+            st.rerun()
 
-    try:
-        result = upload_file(
-            session_id=st.session_state.session_id,
-            uploaded_file=uploaded_file,
-        )
-        st.session_state.filename = uploaded_file.name
-        st.session_state.document_id = result.get("document_id", "")
-        cache_active_session_assets()
-        st.success(f"✅ {result.get('message', 'Upload successful')}")
-    except RuntimeError as error:
-        st.session_state.filename = ""
-        st.session_state.document_id = ""
-        st.error(str(error))
+    if st.session_state.documents:
+        st.markdown("### 📄 Attached Documents")
+        for doc in st.session_state.documents:
+            col1, col2 = st.columns([0.9, 0.1])
+            with col1:
+                st.write(doc["filename"])
+            with col2:
+                if st.button("🗑️", key=f"del_{doc['document_id']}", help="Delete document"):
+                    try:
+                        delete_document(doc["document_id"])
+                        st.session_state.documents = [
+                            d for d in st.session_state.documents 
+                            if d["document_id"] != doc["document_id"]
+                        ]
+                        st.rerun()
+                    except RuntimeError as error:
+                        st.error(str(error))
 
 
 def clear_conversation() -> None:
@@ -163,7 +161,7 @@ def chat_section() -> None:
     with st.form("chat_form", clear_on_submit=True):
         question = st.text_input(
             "You",
-            placeholder="Ask a question about the uploaded file",
+            placeholder="Ask a question about the uploaded files",
         )
 
         send = st.form_submit_button("Send")

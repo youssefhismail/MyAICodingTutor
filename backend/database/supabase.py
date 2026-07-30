@@ -3,6 +3,7 @@
 from supabase import Client, create_client
 
 from backend.config import SUPABASE_KEY, SUPABASE_URL
+from backend.models.domain import DocumentContext
 
 
 def get_supabase_client() -> Client:
@@ -17,18 +18,12 @@ def get_supabase_client() -> Client:
 # ---------------------------------------------------------------------------
 
 
-def upsert_document(session_id: str, filename: str, content: str) -> dict:
-    """Replace any existing document for the session, then insert the new one.
+def insert_document(session_id: str, filename: str, content: str) -> dict:
+    """Insert a new document for the session.
 
-    Enforces the one-document-per-session invariant at the data-access layer.
     Returns the inserted row as a dict.
     """
     client = get_supabase_client()
-    try:
-        client.table("documents").delete().eq("session_id", session_id).execute()
-    except Exception as error:
-        raise RuntimeError(f"Supabase document delete failed: {error}") from error
-
     try:
         response = (
             client.table("documents")
@@ -50,23 +45,39 @@ def upsert_document(session_id: str, filename: str, content: str) -> dict:
     return row
 
 
-def get_document_by_session(session_id: str) -> dict | None:
-    """Return the single document associated with a session, or None."""
+def get_documents_by_session(session_id: str) -> list[DocumentContext]:
+    """Return all documents associated with a session, ordered chronologically."""
     try:
         response = (
             get_supabase_client()
             .table("documents")
             .select("id, session_id, filename, content")
             .eq("session_id", session_id)
-            .limit(1)
+            .order("uploaded_at")
             .execute()
         )
     except Exception as error:
         raise RuntimeError(f"Supabase document lookup failed: {error}") from error
 
-    if response.data:
-        return response.data[0]
-    return None
+    if not response.data:
+        return []
+
+    return [
+        DocumentContext(
+            document_id=row["id"],
+            filename=row["filename"],
+            content=row["content"],
+        )
+        for row in response.data
+    ]
+
+
+def delete_document(document_id: str) -> None:
+    """Delete a specific document by its ID."""
+    try:
+        get_supabase_client().table("documents").delete().eq("id", document_id).execute()
+    except Exception as error:
+        raise RuntimeError(f"Supabase document delete failed: {error}") from error
 
 
 # ---------------------------------------------------------------------------

@@ -34,3 +34,10 @@ class UploadResponse(BaseModel):
     document_id: str = Field(..., description="ID of the stored document")
     filename: str = Field(..., description="Original filename")
     message: str = Field(..., description="Human-readable status message")
+
+
+class DocumentResponse(BaseModel):
+    """Response payload for a single document."""
+
+    document_id: str = Field(..., description="ID of the stored document")
+    filename: str = Field(..., description="Original filename")
