@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from backend.api.chat import router as chat_router
 from backend.api.sessions import router as sessions_router
+from backend.api.upload import router as upload_router
 
 
 app = FastAPI(
@@ -13,11 +14,13 @@ app = FastAPI(
     openapi_tags=[
         {"name": "chat", "description": "Chat endpoints"},
         {"name": "sessions", "description": "Conversation management"},
+        {"name": "upload", "description": "File upload endpoints"},
     ],
 )
 
 app.include_router(chat_router)
 app.include_router(sessions_router)
+app.include_router(upload_router)
 
 
 @app.get("/health")

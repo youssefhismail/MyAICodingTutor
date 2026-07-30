@@ -63,7 +63,10 @@ def _format_chat_history(chat_history: list[dict[str, str]]) -> str:
     if not chat_history:
         return "No prior conversation."
 
-    return "\n\n".join(
-        f"User: {message['question']}\nAssistant: {message['answer']}"
-        for message in chat_history
-    )
+    lines: list[str] = []
+    for message in chat_history:
+        role = message.get("role", "user")
+        label = "User" if role == "user" else "Assistant"
+        lines.append(f"{label}: {message.get('content', '')}")
+
+    return "\n\n".join(lines)

@@ -1,5 +1,19 @@
+# Environment
 .env
-.venv/
+
+# Python
 __pycache__/
 *.py[cod]
-.streamlit/secrets.toml
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

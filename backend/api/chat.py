@@ -16,10 +16,6 @@ def create_chat_response(payload: ChatRequest) -> ChatResponse:
     try:
         message = submit_question(
             session_id=payload.session_id,
-            filename=payload.filename,
-            system_prompt=payload.system_prompt,
-            context=payload.context,
-            chat_history=payload.chat_history,
             question=payload.question,
         )
     except ValueError as error:

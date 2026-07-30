@@ -26,3 +26,11 @@ class SessionMessage(BaseModel):
     filename: str
     question: str
     answer: str
+
+
+class UploadResponse(BaseModel):
+    """Response payload for file uploads."""
+
+    document_id: str = Field(..., description="ID of the stored document")
+    filename: str = Field(..., description="Original filename")
+    message: str = Field(..., description="Human-readable status message")

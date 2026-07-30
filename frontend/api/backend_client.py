@@ -46,10 +46,6 @@ def delete_session(session_id: str) -> None:
 
 def submit_question(
     session_id: str,
-    filename: str,
-    system_prompt: str,
-    context: str,
-    chat_history: list[dict[str, str]],
     question: str,
 ) -> dict[str, str]:
     response = _request(
@@ -58,11 +54,20 @@ def submit_question(
         timeout=120,
         json={
             "session_id": session_id,
-            "filename": filename,
-            "system_prompt": system_prompt,
-            "context": context,
-            "chat_history": chat_history,
             "question": question,
         },
+    )
+    return response.json()
+
+
+def upload_file(session_id: str, uploaded_file) -> dict[str, str]:
+    """Upload a file to the backend via multipart/form-data."""
+    uploaded_file.seek(0)
+    response = _request(
+        "POST",
+        "/upload",
+        timeout=60,
+        files={"file": (uploaded_file.name, uploaded_file, "application/octet-stream")},
+        data={"session_id": session_id},
     )
     return response.json()
