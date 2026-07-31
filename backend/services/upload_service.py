@@ -25,6 +25,18 @@ ALLOWED_EXTENSIONS: set[str] = {
     ".kt",
     ".txt",
     ".md",
+    ".yaml",
+    ".json",
+    ".sh",
+    ".sql",
+    ".html",
+    ".css",
+    ".scss",
+    ".sass",
+    ".xml",
+    ".csv",
+    ".pyi",
+    ".ipynb",
 }
 
 
