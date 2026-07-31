@@ -3,7 +3,7 @@
 from supabase import Client, create_client
 
 from backend.config import SUPABASE_KEY, SUPABASE_URL
-from backend.models.domain import DocumentContext
+from backend.models.domain import DocumentChunk, DocumentContext
 
 
 def get_supabase_client() -> Client:
@@ -78,6 +78,57 @@ def delete_document(document_id: str) -> None:
         get_supabase_client().table("documents").delete().eq("id", document_id).execute()
     except Exception as error:
         raise RuntimeError(f"Supabase document delete failed: {error}") from error
+
+
+def insert_document_chunks(document_id: str, chunks: list[DocumentChunk]) -> None:
+    """Insert multiple document chunks associated with a document ID."""
+    if not chunks:
+        return
+
+    client = get_supabase_client()
+    rows = [
+        {
+            "document_id": document_id,
+            "sequence_number": chunk.sequence_number,
+            "start_offset": chunk.start_offset,
+            "end_offset": chunk.end_offset,
+            "content": chunk.content,
+        }
+        for chunk in chunks
+    ]
+
+    try:
+        client.table("document_chunks").insert(rows).execute()
+    except Exception as error:
+        raise RuntimeError(f"Supabase document chunks insert failed: {error}") from error
+
+
+def get_chunks_by_document(document_id: str) -> list[DocumentChunk]:
+    """Return all chunks for a document, ordered by sequence number."""
+    try:
+        response = (
+            get_supabase_client()
+            .table("document_chunks")
+            .select("sequence_number, start_offset, end_offset, content")
+            .eq("document_id", document_id)
+            .order("sequence_number")
+            .execute()
+        )
+    except Exception as error:
+        raise RuntimeError(f"Supabase document chunks lookup failed: {error}") from error
+
+    if not response.data:
+        return []
+
+    return [
+        DocumentChunk(
+            sequence_number=row["sequence_number"],
+            start_offset=row["start_offset"],
+            end_offset=row["end_offset"],
+            content=row["content"],
+        )
+        for row in response.data
+    ]
 
 
 # ---------------------------------------------------------------------------

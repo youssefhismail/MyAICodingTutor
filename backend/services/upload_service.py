@@ -1,11 +1,17 @@
 """Upload service — validate, read, and persist uploaded documents."""
 
+import json
 from pathlib import PurePath
 
 from fastapi import UploadFile
 
 from backend.config import MAX_UPLOAD_SIZE
-from backend.database.supabase import delete_document, insert_document
+from backend.database.supabase import (
+    delete_document,
+    insert_document,
+    insert_document_chunks,
+)
+from backend.services.chunk_service import chunk_document
 from backend.utils.validators import require_text
 
 
@@ -38,6 +44,24 @@ ALLOWED_EXTENSIONS: set[str] = {
     ".pyi",
     ".ipynb",
 }
+
+
+def parse_ipynb(raw_content: str) -> str:
+    """Parse a Jupyter Notebook and extract only code and markdown cells."""
+    try:
+        notebook = json.loads(raw_content)
+        extracted_text = []
+        for cell in notebook.get("cells", []):
+            cell_type = cell.get("cell_type")
+            if cell_type in ("code", "markdown"):
+                source = cell.get("source", [])
+                if isinstance(source, list):
+                    source = "".join(source)
+                if source:
+                    extracted_text.append(f"### {cell_type.capitalize()} Cell ###\n{source}")
+        return "\n\n".join(extracted_text)
+    except Exception as error:
+        raise ValueError("The uploaded file is not a valid Jupyter Notebook.") from error
 
 
 def validate_upload(filename: str, size: int) -> None:
@@ -82,15 +106,25 @@ async def process_upload(session_id: str, file: UploadFile) -> dict[str, str]:
     except UnicodeDecodeError as error:
         raise ValueError("The uploaded file is not valid UTF-8 text.") from error
 
-    # --- future RAG steps would go here ---
-    # chunks = chunk_document(content)
-    # embeddings = generate_embeddings(chunks)
-    # store with embeddings
+    if filename.lower().endswith(".ipynb"):
+        content = parse_ipynb(content)
 
+    # 1. Chunk document in pure Python (no DB writes yet)
+    chunks = chunk_document(content)
+
+    # 2. Insert document to get the document_id
     row = insert_document(session_id, filename, content)
+    document_id = str(row.get("id", ""))
+
+    # 3. Insert chunks explicitly. Rollback document on failure.
+    try:
+        insert_document_chunks(document_id, chunks)
+    except Exception:
+        delete_document(document_id)
+        raise
 
     return {
-        "document_id": str(row.get("id", "")),
+        "document_id": document_id,
         "filename": filename,
         "message": "Upload successful",
     }

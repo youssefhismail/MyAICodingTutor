@@ -2,22 +2,24 @@
 
 An AI-powered coding tutor that helps learners understand code through natural language conversations.
 
-The application allows users to upload one or more source code files, ask questions about them, and receive explanations powered by Azure AI Foundry. It is designed with a modular, production-style architecture using FastAPI, Streamlit, and Supabase, and is structured to support Retrieval-Augmented Generation (RAG) in future iterations.
+The application allows users to upload one or more source code files, ask questions about them, and receive explanations powered by Azure AI Foundry. It is built using a modular, production-style architecture with FastAPI, Streamlit, and Supabase. The project is currently implementing Retrieval-Augmented Generation (RAG), with the document chunking pipeline completed and semantic retrieval under active development.
 
 ---
 
 # Features
 
 - 🤖 AI-powered coding tutor using Azure AI Foundry
+- ⚡ Streaming AI responses
 - 📂 Upload multiple files into a single chat session
 - 📝 Supports Python scripts, Jupyter Notebooks, Markdown, and plain text files
 - 💬 Persistent chat conversations
 - 📄 Individual document management (upload & delete)
 - 🗂 Session history with conversation restoration
+- 📑 Automatic document chunking for Retrieval-Augmented Generation (RAG)
 - 🧱 Clean layered architecture (API → Services → Database)
 - 🐳 Fully Dockerized with Docker Compose
 - ☁️ Supabase PostgreSQL persistence
-- 🚀 Designed for future Retrieval-Augmented Generation (RAG)
+- 🚀 Incremental RAG architecture with semantic retrieval in progress
 
 ---
 
@@ -86,6 +88,7 @@ MyAICodingTutor/
 │   │
 │   ├── services/
 │   │   ├── chat_service.py
+│   │   ├── chunk_service.py
 │   │   ├── llm_service.py
 │   │   ├── prompt_service.py
 │   │   └── upload_service.py
@@ -126,7 +129,10 @@ MyAICodingTutor/
                      Azure AI Foundry
                            │
                            ▼
-                     Supabase PostgreSQL
+                 Supabase PostgreSQL
+                           │
+                           ▼
+              Document Chunks (RAG Foundation)
 ```
 
 ---
@@ -152,11 +158,17 @@ Document Parser
 
 ↓
 
+Chunk Service
+
+↓
+
 Supabase Database
 
 ↓
 
-Session Documents
+Documents
++
+Document Chunks
 ```
 
 ---
@@ -180,7 +192,7 @@ Azure AI Foundry
 
 ↓
 
-Assistant Response
+Streaming Assistant Response
 
 ↓
 
@@ -263,6 +275,33 @@ Session
 
 ---
 
+## Document Chunks
+
+Stores the individual chunks created from uploaded documents.
+
+```text
+document_chunks
+
+id
+document_id
+sequence_number
+start_offset
+end_offset
+content
+created_at
+```
+
+Each uploaded document is automatically divided into overlapping chunks using a hierarchical text splitter that prefers:
+
+- Paragraph boundaries
+- Line boundaries
+- Word boundaries
+- Character boundaries (fallback)
+
+The resulting chunks form the foundation of the Retrieval-Augmented Generation (RAG) pipeline and will be embedded and indexed in later development phases.
+
+---
+
 # Backend Architecture
 
 The backend follows a layered architecture.
@@ -296,6 +335,7 @@ Contains no business logic.
 Responsible for:
 
 - Upload workflow
+- Document chunking
 - Chat orchestration
 - Prompt construction
 - Azure AI interaction
@@ -356,13 +396,13 @@ cd MyAICodingTutor
 python -m venv .venv
 ```
 
-Windows
+### Windows
 
 ```bash
 .venv\Scripts\activate
 ```
 
-Linux / macOS
+### Linux / macOS
 
 ```bash
 source .venv/bin/activate
@@ -429,10 +469,13 @@ The project follows several architectural principles:
 # Current Capabilities
 
 - AI coding assistant
+- Streaming AI responses
 - Multiple uploaded documents per conversation
 - Persistent conversations
 - Conversation history
 - Individual document deletion
+- Automatic document chunking
+- Hierarchical text splitting
 - Jupyter Notebook parsing
 - Docker deployment
 - Azure AI integration
@@ -442,54 +485,50 @@ The project follows several architectural principles:
 
 # Future Roadmap
 
-## Retrieval-Augmented Generation (RAG)
+## ✅ Phase 1 — Document Chunking (Completed)
 
-Planned architecture:
+Implemented:
 
-```text
-Session
+- Document ingestion pipeline
+- Hierarchical document chunking
+- Configurable chunk size and overlap
+- Chunk metadata (sequence number, offsets)
+- Automatic chunk generation during upload
+- Transaction-safe upload workflow
+- `document_chunks` database table
 
-↓
+---
 
-Documents
+## 🚧 Phase 2 — Embeddings (In Progress)
 
-↓
+Planned:
 
-Document Chunks
-
-↓
-
-Embeddings
-
-↓
-
-Vector Search
-
-↓
-
-Relevant Chunks
-
-↓
-
-Prompt Builder
-
-↓
-
-Azure AI Foundry
-```
-
-Future improvements include:
-
-- Vector embeddings
+- Azure AI Foundry embedding model
 - pgvector integration
-- Semantic document retrieval
-- Repository uploads
-- Streaming LLM responses
-- Authentication
-- User accounts
-- Conversation export
-- Code execution sandbox
-- Advanced document parsing
+- Automatic embedding generation
+- Store vector embeddings alongside document chunks
+
+---
+
+## ⏳ Phase 3 — Semantic Retrieval
+
+Planned:
+
+- Embed user questions
+- Vector similarity search
+- Retrieve Top-K relevant chunks
+- Context ranking
+
+---
+
+## ⏳ Phase 4 — Context-Aware Responses
+
+Planned:
+
+- Prompt augmentation
+- Ground responses using retrieved chunks
+- Source citations
+- Reduce hallucinations
 
 ---
 
@@ -507,7 +546,10 @@ This project was developed to gain hands-on experience with:
 - REST API design
 - Layered software architecture
 - AI application development
-- Retrieval-Augmented Generation (upcoming)
+- Retrieval-Augmented Generation (RAG)
+- Document chunking
+- Vector databases
+- Semantic search
 
 ---
 
