@@ -3,7 +3,7 @@
 import logging
 
 
-from backend.models.domain import DocumentContext
+from backend.models.domain import RetrievedChunk
 
 logger = logging.getLogger(__name__)
 
@@ -14,34 +14,44 @@ DEBUG_CONVERSATION_CONTEXT = False
 
 def build_prompt(
     system_prompt: str,
-    documents: list[DocumentContext],
+    retrieved_chunks: list[RetrievedChunk],
     chat_history: list[dict[str, str]],
     question: str,
 ) -> str:
     history_text = _format_chat_history(chat_history)
 
     context = ""
-    for doc in documents:
-        filename = doc.filename
-        content = doc.content.strip()
+    for r_chunk in retrieved_chunks:
+        filename = r_chunk.filename
+        seq = r_chunk.chunk.sequence_number
+        start_off = r_chunk.chunk.start_offset
+        end_off = r_chunk.chunk.end_offset
+        content = r_chunk.chunk.content.strip()
         if content:
-            context += f"\n--- FILE: {filename} ---\n{content}\n--- END FILE ---\n"
+            context += (
+                f"\nFile: {filename}\n"
+                f"Chunk: {seq}\n"
+                f"Start Offset: {start_off}\n"
+                f"End Offset: {end_off}\n"
+                f"{content}\n"
+                f"----------------\n"
+            )
 
     prompt = f"""SYSTEM INSTRUCTIONS
 {system_prompt}
 
 SOURCE RULES
-1. For file-related questions, the Uploaded Files are the primary and only
-   source of truth. Do not invent information that is absent from them.
-2. For questions about earlier messages, the Conversation History is the
+1. The retrieved context is the primary source of truth for file-related questions.
+2. If the answer cannot be determined from the retrieved context, clearly state that rather than inventing information.
+3. For questions about earlier messages, the Conversation History is the
    source of truth. It contains only messages that occurred before the
    Current Question.
-3. "What was my previous question?", "What did you answer earlier?", and
+4. "What was my previous question?", "What did you answer earlier?", and
    "Summarize our conversation" must be answered from Conversation History.
    Never treat the Current Question as a previous question or earlier message.
-4. If the needed information is in neither relevant source, say so plainly.
+5. If the needed information is in neither relevant source, say so plainly.
 
---- UPLOADED FILES ---
+--- UPLOADED FILES (RETRIEVED CONTEXT) ---
 {context}
 --- END UPLOADED FILES ---
 
