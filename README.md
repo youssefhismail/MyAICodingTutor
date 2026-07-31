@@ -1,93 +1,78 @@
 # MyAICodingTutor
 
-An AI-powered coding tutor that allows users to upload source code or text files and ask natural language questions about them. The application uses Azure AI Foundry to generate context-aware responses while FastAPI handles the backend API and Supabase persists uploaded documents and conversation history.
+An AI-powered coding tutor that helps learners understand code through natural language conversations.
 
-This project was built as part of my Machine Learning internship to explore modern AI application architecture, backend development, and LLM integration.
+The application allows users to upload one or more source code files, ask questions about them, and receive explanations powered by Azure AI Foundry. It is designed with a modular, production-style architecture using FastAPI, Streamlit, and Supabase, and is structured to support Retrieval-Augmented Generation (RAG) in future iterations.
 
 ---
 
 # Features
 
-## Current
-
-- Upload a single source code or text file
-- Ask questions about the uploaded document
-- AI responses grounded in the uploaded file
-- Persistent chat history stored in Supabase
-- Session-based conversations
-- FastAPI REST API backend
-- Streamlit frontend
-- Modular service-oriented architecture
-- Azure AI Foundry integration
-- Document persistence independent of the frontend
+- 🤖 AI-powered coding tutor using Azure AI Foundry
+- 📂 Upload multiple files into a single chat session
+- 📝 Supports Python scripts, Jupyter Notebooks, Markdown, and plain text files
+- 💬 Persistent chat conversations
+- 📄 Individual document management (upload & delete)
+- 🗂 Session history with conversation restoration
+- 🧱 Clean layered architecture (API → Services → Database)
+- 🐳 Fully Dockerized with Docker Compose
+- ☁️ Supabase PostgreSQL persistence
+- 🚀 Designed for future Retrieval-Augmented Generation (RAG)
 
 ---
 
-# Tech Stack
+# Supported File Types
+
+| File Type | Supported |
+|------------|-----------|
+| Python (.py) | ✅ |
+| Jupyter Notebook (.ipynb) | ✅ |
+| Markdown (.md) | ✅ |
+| Plain Text (.txt) | ✅ |
+
+Jupyter notebooks are automatically parsed into a clean textual representation by extracting Markdown and code cells while ignoring notebook metadata and outputs.
+
+---
+
+# Technology Stack
+
+## Backend
+
+- FastAPI
+- Uvicorn
+- Pydantic
 
 ## Frontend
 
 - Streamlit
 
-## Backend
-
-- FastAPI
-- Pydantic
-
 ## AI
 
 - Azure AI Foundry
+- Azure OpenAI Chat Models
 
 ## Database
 
 - Supabase
 - PostgreSQL
 
-## Language
+## DevOps
 
-- Python
-
----
-
-# Architecture
-
-```
-                Streamlit Frontend
-                        │
-                        ▼
-                 FastAPI Backend
-                        │
-        ┌───────────────┼────────────────┐
-        ▼               ▼                ▼
- Document Service   Chat Service    Session Service
-        │               │
-        └───────────────┼───────────────┐
-                        ▼               ▼
-                  Supabase        Azure AI Foundry
-                 PostgreSQL            LLM
-```
-
-The frontend is responsible only for user interaction.
-
-The backend owns:
-
-- uploaded documents
-- conversation history
-- prompt construction
-- communication with the LLM
-
-This separation keeps the frontend lightweight while centralizing business logic inside the API.
+- Docker
+- Docker Compose
 
 ---
 
 # Project Structure
 
-```
+```text
 MyAICodingTutor/
-│
+
 ├── backend/
+│
 │   ├── api/
 │   │   ├── chat.py
+│   │   ├── documents.py
 │   │   ├── sessions.py
 │   │   └── upload.py
 │   │
@@ -95,6 +80,7 @@ MyAICodingTutor/
 │   │   └── supabase.py
 │   │
 │   ├── models/
+│   │   ├── domain.py
 │   │   ├── requests.py
 │   │   └── responses.py
 │   │
@@ -112,80 +98,304 @@ MyAICodingTutor/
 │   ├── api/
 │   ├── services/
 │   ├── ui/
-│   ├── app.py
-│   └── config.py
+│   ├── config.py
+│   └── app.py
 │
+├── Dockerfile.backend
+├── Dockerfile.frontend
+├── docker-compose.yml
 ├── requirements.txt
 └── README.md
 ```
 
-The project follows a layered architecture where:
+---
 
-- API routes handle HTTP requests.
-- Services contain business logic.
-- Database helpers encapsulate all Supabase operations.
-- Models define request and response schemas.
+# Architecture
+
+```text
+                    Streamlit Frontend
+                           │
+                           ▼
+                    FastAPI Backend
+                           │
+          ┌────────────────┼────────────────┐
+          ▼                ▼                ▼
+     API Routes       Service Layer     Database Layer
+                           │
+                           ▼
+                     Azure AI Foundry
+                           │
+                           ▼
+                     Supabase PostgreSQL
+```
+
+---
+
+# Current Workflow
+
+## Upload Documents
+
+```text
+User
+
+↓
+
+Upload one or more files
+
+↓
+
+FastAPI Upload Endpoint
+
+↓
+
+Document Parser
+
+↓
+
+Supabase Database
+
+↓
+
+Session Documents
+```
+
+---
+
+## Ask Questions
+
+```text
+User Question
+
+↓
+
+Retrieve Session Documents
+
+↓
+
+Prompt Builder
+
+↓
+
+Azure AI Foundry
+
+↓
+
+Assistant Response
+
+↓
+
+Conversation Saved
+```
 
 ---
 
 # Database Design
 
-Conversation history is stored using a message-based schema similar to modern chat APIs.
+## Sessions
 
-Each message is stored as an individual record:
+Stores conversation metadata.
 
-| role | content |
-|------|---------|
-| user | Question |
-| assistant | Response |
+```text
+sessions
 
-This design makes conversations easier to extend with future roles such as:
-
-- system
-- tool
-
-and aligns with the OpenAI/Azure chat message format.
-
-Uploaded documents are stored separately and associated with a session.
+id
+title
+created_at
+updated_at
+```
 
 ---
 
-# Running the Project
+## Messages
 
-## 1. Clone the repository
+Stores the conversation history.
+
+```text
+messages
+
+id
+session_id
+role
+content
+sequence
+created_at
+```
+
+Messages are stored sequentially.
+
+Example:
+
+```text
+0 User
+1 Assistant
+2 User
+3 Assistant
+```
+
+This structure supports an unlimited conversation history.
+
+---
+
+## Documents
+
+Stores every uploaded file associated with a session.
+
+```text
+documents
+
+id
+session_id
+filename
+content
+uploaded_at
+```
+
+Each session may contain multiple uploaded documents.
+
+```text
+Session
+
+├── app.py
+├── database.py
+├── models.py
+└── notebook.ipynb
+```
+
+---
+
+# Backend Architecture
+
+The backend follows a layered architecture.
+
+```text
+API Layer
+
+↓
+
+Service Layer
+
+↓
+
+Database Layer
+```
+
+## API Layer
+
+Responsible for:
+
+- HTTP endpoints
+- Request validation
+- Response models
+
+Contains no business logic.
+
+---
+
+## Service Layer
+
+Responsible for:
+
+- Upload workflow
+- Chat orchestration
+- Prompt construction
+- Azure AI interaction
+
+Contains all business logic.
+
+---
+
+## Database Layer
+
+Responsible only for:
+
+- CRUD operations
+- Supabase queries
+- Data persistence
+
+Contains no business logic.
+
+---
+
+# Docker
+
+The application is fully containerized.
+
+Services:
+
+- Backend
+- Frontend
+
+Run everything with:
 
 ```bash
-git clone https://github.com/<your-username>/MyAICodingTutor.git
+docker compose up --build
+```
 
+Stop:
+
+```bash
+docker compose down
+```
+
+---
+
+# Local Development
+
+## Clone
+
+```bash
+git clone <repository-url>
 cd MyAICodingTutor
 ```
 
-## 2. Install dependencies
+---
+
+## Create Environment
+
+```bash
+python -m venv .venv
+```
+
+Windows
+
+```bash
+.venv\Scripts\activate
+```
+
+Linux / macOS
+
+```bash
+source .venv/bin/activate
+```
+
+---
+
+## Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## 3. Configure environment variables
+---
 
-Create a `.env` file.
+## Configure Environment
 
-Example:
+Create a `.env` file containing:
 
 ```env
-AZURE_API_KEY=
-AZURE_ENDPOINT=
-AZURE_DEPLOYMENT_NAME=
-
 SUPABASE_URL=
 SUPABASE_KEY=
+
+AZURE_OPENAI_ENDPOINT=
+AZURE_OPENAI_API_KEY=
+AZURE_OPENAI_DEPLOYMENT=
 
 BACKEND_BASE_URL=http://localhost:8000
 ```
 
 ---
 
-## 4. Start the backend
+## Run Backend
 
 ```bash
 uvicorn backend.main:app --reload
@@ -193,7 +403,7 @@ uvicorn backend.main:app --reload
 
 ---
 
-## 5. Start the frontend
+## Run Frontend
 
 ```bash
 streamlit run frontend/app.py
@@ -201,67 +411,108 @@ streamlit run frontend/app.py
 
 ---
 
-# Current Workflow
+# Design Principles
 
-1. Create a new chat session.
-2. Upload a supported source code or text file.
-3. The backend stores the document in Supabase.
-4. Ask questions about the uploaded file.
-5. Conversation history is automatically persisted.
-6. Previous sessions can be revisited.
+The project follows several architectural principles:
 
----
-
-# Supported Files
-
-Examples include:
-
-- `.py`
-- `.java`
-- `.cpp`
-- `.c`
-- `.js`
-- `.ts`
-- `.html`
-- `.css`
-- `.md`
-- `.txt`
-
-Additional text-based formats can be added easily.
+- Separation of concerns
+- Layered architecture
+- Thin API routes
+- Strong typing
+- Modular services
+- Single responsibility
+- Docker-first development
+- Extensible design for future AI capabilities
 
 ---
 
-# Future Improvements
+# Current Capabilities
 
-- Retrieval-Augmented Generation (RAG)
-- Embeddings
+- AI coding assistant
+- Multiple uploaded documents per conversation
+- Persistent conversations
+- Conversation history
+- Individual document deletion
+- Jupyter Notebook parsing
+- Docker deployment
+- Azure AI integration
+- Supabase persistence
+
+---
+
+# Future Roadmap
+
+## Retrieval-Augmented Generation (RAG)
+
+Planned architecture:
+
+```text
+Session
+
+↓
+
+Documents
+
+↓
+
+Document Chunks
+
+↓
+
+Embeddings
+
+↓
+
+Vector Search
+
+↓
+
+Relevant Chunks
+
+↓
+
+Prompt Builder
+
+↓
+
+Azure AI Foundry
+```
+
+Future improvements include:
+
+- Vector embeddings
 - pgvector integration
-- Repository-wide analysis
-- Multi-file projects
+- Semantic document retrieval
+- Repository uploads
+- Streaming LLM responses
 - Authentication
 - User accounts
-- Streaming responses
-- Docker deployment
-- CI/CD pipeline
+- Conversation export
+- Code execution sandbox
+- Advanced document parsing
 
 ---
 
 # Learning Objectives
 
-This project was built to gain hands-on experience with:
+This project was developed to gain hands-on experience with:
 
-- Large Language Model integration
-- FastAPI backend development
-- REST API design
-- Service-oriented architecture
-- PostgreSQL database design
-- Supabase
+- FastAPI
+- Streamlit
+- Azure AI Foundry
 - Prompt engineering
+- Supabase
+- PostgreSQL
+- Docker
+- REST API design
+- Layered software architecture
 - AI application development
-- Full-stack Python development
+- Retrieval-Augmented Generation (upcoming)
 
 ---
 
 # License
 
-This project is intended for educational and portfolio purposes.
+This project was developed as part of an internship and educational learning experience.
+
+Feel free to use the architecture and ideas for learning purposes.
