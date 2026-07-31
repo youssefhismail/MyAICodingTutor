@@ -61,6 +61,8 @@ _DOCS_MAX_PX: int = 380
 _ALLOWED_TYPES = [
     "py", "js", "ts", "java", "cpp", "c", "cs", "go",
     "rs", "php", "rb", "swift", "kt", "txt", "md",
+    "yaml", "json", "sh", "sql", "html", "css", "scss",
+    "sass", "xml", "csv", "pyi", "ipynb",
 ]
 
 # Session-state key used to pass a question from st.chat_input() into the

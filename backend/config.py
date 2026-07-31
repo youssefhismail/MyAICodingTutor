@@ -23,6 +23,10 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", str(50 * 1024)))
 MAX_UPLOAD_SIZE = int(os.getenv("MAX_UPLOAD_SIZE", str(5 * 1024 * 1024)))
 
+# RAG Phase 1 configuration
+RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "1000"))
+RAG_CHUNK_OVERLAP = int(os.getenv("RAG_CHUNK_OVERLAP", "200"))
+
 DEFAULT_SYSTEM_PROMPT = """
 You are an expert programming assistant.
 
