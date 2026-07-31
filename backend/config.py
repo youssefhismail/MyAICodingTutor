@@ -17,6 +17,7 @@ load_dotenv(ENV_FILE, override=True)
 FOUNDRY_ENDPOINT = os.getenv("FOUNDRY_ENDPOINT", "").rstrip("/")
 FOUNDRY_API_KEY = os.getenv("FOUNDRY_API_KEY", "")
 DEPLOYMENT_NAME = os.getenv("DEPLOYMENT_NAME", "")
+AZURE_OPENAI_EMBEDDING_DEPLOYMENT = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", "text-embedding-3-large")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")

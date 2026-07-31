@@ -426,12 +426,16 @@ Create a `.env` file containing:
 SUPABASE_URL=
 SUPABASE_KEY=
 
-AZURE_OPENAI_ENDPOINT=
-AZURE_OPENAI_API_KEY=
-AZURE_OPENAI_DEPLOYMENT=
+FOUNDRY_ENDPOINT=
+FOUNDRY_API_KEY=
+DEPLOYMENT_NAME=
+AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-large
 
 BACKEND_BASE_URL=http://localhost:8000
 ```
+
+> [!NOTE]
+> The chat (`DEPLOYMENT_NAME`) and embedding (`AZURE_OPENAI_EMBEDDING_DEPLOYMENT`) features utilize completely separate Azure AI Foundry deployments. Ensure both are correctly provisioned in your Azure environment.
 
 ---
 
@@ -499,9 +503,9 @@ Implemented:
 
 ---
 
-## 🚧 Phase 2 — Embeddings (In Progress)
+## ✅ Phase 2 — Embeddings (Completed)
 
-Planned:
+Implemented:
 
 - Azure AI Foundry embedding model
 - pgvector integration
@@ -510,7 +514,7 @@ Planned:
 
 ---
 
-## ⏳ Phase 3 — Semantic Retrieval
+## 🚧 Phase 3 — Semantic Retrieval (In Progress)
 
 Planned:
 
