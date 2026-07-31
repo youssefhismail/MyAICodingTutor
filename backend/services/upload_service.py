@@ -1,6 +1,7 @@
 """Upload service — validate, read, and persist uploaded documents."""
 
 import json
+import logging
 from pathlib import PurePath
 
 from fastapi import UploadFile
@@ -12,7 +13,10 @@ from backend.database.supabase import (
     insert_document_chunks,
 )
 from backend.services.chunk_service import chunk_document
+from backend.services.embedding_service import generate_embeddings
 from backend.utils.validators import require_text
+
+logger = logging.getLogger(__name__)
 
 
 ALLOWED_EXTENSIONS: set[str] = {
@@ -87,11 +91,11 @@ def validate_upload(filename: str, size: int) -> None:
 
 async def process_upload(session_id: str, file: UploadFile) -> dict[str, str]:
     """
-    Orchestrate an upload: validate → read → store.
+    Orchestrate an upload: validate → read → parse → chunk → insert document → 
+    generate embeddings → insert chunks with embeddings.
 
-    Future RAG extension point:
-        validate → read → chunk_document → generate_embeddings → store
-    The return type and caller contract remain unchanged.
+    Performs a logical rollback (deleting the inserted document) if embedding
+    generation or chunk insertion fails.
     """
     session_id = require_text(session_id, "Session ID")
 
@@ -116,12 +120,37 @@ async def process_upload(session_id: str, file: UploadFile) -> dict[str, str]:
     row = insert_document(session_id, filename, content)
     document_id = str(row.get("id", ""))
 
-    # 3. Insert chunks explicitly. Rollback document on failure.
+    # 3. Generate embeddings and insert chunks. Rollback document on failure.
+    num_chunks = len(chunks)
     try:
-        insert_document_chunks(document_id, chunks)
-    except Exception:
+        # Extract chunk texts for the batch request
+        chunk_texts = [chunk.content for chunk in chunks]
+        
+        # Generate ALL embeddings in ONE batch request
+        embeddings = generate_embeddings(chunk_texts)
+        
+        if len(embeddings) != num_chunks:
+            raise RuntimeError(
+                f"Embedding service returned {len(embeddings)} embeddings "
+                f"but {num_chunks} were expected."
+            )
+        
+        # Insert chunks alongside their embeddings
+        insert_document_chunks(document_id, chunks, embeddings)
+        
+        logger.info(
+            "Document upload successful: '%s' (%d chunks)", filename, num_chunks
+        )
+    except Exception as error:
+        logger.error(
+            "Upload failed for '%s' during embedding or chunk insertion. "
+            "Rolling back document. Error: %s", filename, error
+        )
         delete_document(document_id)
-        raise
+        logger.info("Rollback complete for document_id: %s", document_id)
+        raise RuntimeError(
+            f"Failed to process and store chunks for '{filename}': {error}"
+        ) from error
 
     return {
         "document_id": document_id,

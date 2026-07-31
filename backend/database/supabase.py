@@ -80,22 +80,32 @@ def delete_document(document_id: str) -> None:
         raise RuntimeError(f"Supabase document delete failed: {error}") from error
 
 
-def insert_document_chunks(document_id: str, chunks: list[DocumentChunk]) -> None:
-    """Insert multiple document chunks associated with a document ID."""
+def insert_document_chunks(
+    document_id: str,
+    chunks: list[DocumentChunk],
+    embeddings: list[list[float]] | None = None,
+) -> None:
+    """Insert multiple document chunks and optional embeddings associated with a document ID."""
     if not chunks:
         return
 
+    if embeddings and len(embeddings) != len(chunks):
+        raise ValueError("The number of embeddings must match the number of chunks.")
+
     client = get_supabase_client()
-    rows = [
-        {
+    
+    rows = []
+    for i, chunk in enumerate(chunks):
+        row = {
             "document_id": document_id,
             "sequence_number": chunk.sequence_number,
             "start_offset": chunk.start_offset,
             "end_offset": chunk.end_offset,
             "content": chunk.content,
         }
-        for chunk in chunks
-    ]
+        if embeddings:
+            row["embedding"] = embeddings[i]
+        rows.append(row)
 
     try:
         client.table("document_chunks").insert(rows).execute()
