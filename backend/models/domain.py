@@ -18,3 +18,12 @@ class DocumentChunk(BaseModel):
     start_offset: int = Field(..., description="Starting character index in the original text")
     end_offset: int = Field(..., description="Ending character index in the original text")
     content: str = Field(..., description="Text content of the chunk")
+
+
+class RetrievedChunk(BaseModel):
+    """Represents a chunk retrieved from the database, wrapped with retrieval metadata."""
+
+    chunk: DocumentChunk = Field(..., description="The original document chunk")
+    filename: str = Field(..., description="The name of the file this chunk belongs to")
+    distance: float = Field(..., description="Cosine distance from the query embedding")
+

@@ -3,7 +3,7 @@
 from supabase import Client, create_client
 
 from backend.config import SUPABASE_KEY, SUPABASE_URL
-from backend.models.domain import DocumentChunk, DocumentContext
+from backend.models.domain import DocumentChunk, DocumentContext, RetrievedChunk
 
 
 def get_supabase_client() -> Client:
@@ -139,6 +139,46 @@ def get_chunks_by_document(document_id: str) -> list[DocumentChunk]:
         )
         for row in response.data
     ]
+
+
+def search_similar_chunks(
+    session_id: str,
+    query_embedding: list[float],
+    top_k: int,
+) -> list[RetrievedChunk]:
+    """Retrieve the most relevant document chunks for a session via vector search."""
+    if not session_id or not query_embedding:
+        return []
+
+    client = get_supabase_client()
+    try:
+        response = client.rpc(
+            "match_document_chunks",
+            {
+                "query_embedding": query_embedding,
+                "match_count": top_k,
+                "p_session_id": session_id,
+            },
+        ).execute()
+    except Exception as error:
+        raise RuntimeError(f"Supabase vector search RPC failed: {error}") from error
+
+    results = []
+    for row in response.data or []:
+        chunk = DocumentChunk(
+            sequence_number=row.get("sequence_number", 0),
+            start_offset=row.get("start_offset", 0),
+            end_offset=row.get("end_offset", 0),
+            content=row.get("content", ""),
+        )
+        retrieved_chunk = RetrievedChunk(
+            chunk=chunk,
+            filename=row.get("filename", ""),
+            distance=row.get("distance", 0.0),
+        )
+        results.append(retrieved_chunk)
+        
+    return results
 
 
 # ---------------------------------------------------------------------------

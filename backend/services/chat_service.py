@@ -11,8 +11,9 @@ from backend.database.supabase import (
 )
 from backend.services.llm_service import ask_llm, stream_llm
 from backend.services.prompt_service import build_prompt
+from backend.services.retrieval_service import retrieve_chunks
 from backend.utils.validators import require_text
-from backend.config import DEFAULT_SYSTEM_PROMPT
+from backend.config import DEFAULT_SYSTEM_PROMPT, TOP_K_RETRIEVAL
 
 
 def load_conversation_summaries() -> list[dict[str, str]]:
@@ -68,12 +69,20 @@ def _prepare_conversation(session_id: str, question: str) -> tuple[str, str, str
     session_id = require_text(session_id, "Session ID")
     question = require_text(question, "Question")
 
+    # Fast check: ensure the session actually has documents before doing vector math.
     documents = get_documents_by_session(session_id)
     if not documents:
         raise ValueError("Upload a file before asking a question.")
 
+    # True RAG: retrieve chunks via semantic similarity rather than dumping the whole file.
+    retrieved_chunks = retrieve_chunks(
+        session_id=session_id, 
+        query=question, 
+        top_k=TOP_K_RETRIEVAL
+    )
+
     chat_history = load_messages(session_id)
-    prompt = build_prompt(DEFAULT_SYSTEM_PROMPT, documents, chat_history, question)
+    prompt = build_prompt(DEFAULT_SYSTEM_PROMPT, retrieved_chunks, chat_history, question)
     return session_id, question, prompt
 
 
