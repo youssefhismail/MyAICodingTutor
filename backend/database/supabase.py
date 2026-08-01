@@ -173,6 +173,7 @@ def search_similar_chunks(
         )
         retrieved_chunk = RetrievedChunk(
             chunk=chunk,
+            document_id=row.get("document_id", ""),
             filename=row.get("filename", ""),
             distance=row.get("distance", 0.0),
         )

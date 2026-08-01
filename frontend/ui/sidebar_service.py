@@ -18,6 +18,9 @@ def render_sidebar(
             on_new_chat()
 
         st.divider()
+        st.toggle("🛠️ Debug Retrieval", key="debug_retrieval", value=False)
+        st.divider()
+
         st.subheader("Previous Conversations")
 
         previous = [

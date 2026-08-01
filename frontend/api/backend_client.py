@@ -73,7 +73,7 @@ def submit_question(
     return response.json()
 
 
-def stream_question(session_id: str, question: str) -> Iterator[str]:
+def stream_question(session_id: str, question: str) -> Iterator[dict]:
     """Stream the assistant's answer token-by-token from the backend.
 
     POSTs to ``POST /chat/stream`` and decodes each Server-Sent Event,
@@ -88,7 +88,7 @@ def stream_question(session_id: str, question: str) -> Iterator[str]:
     token is delivered the instant it arrives over the wire.
 
     Yields:
-        Individual text tokens as they arrive.
+        Individual dictionaries representing the events as they arrive.
 
     Raises:
         RuntimeError: if the backend returns an error status or an error event.
@@ -144,17 +144,19 @@ def stream_question(session_id: str, question: str) -> Iterator[str]:
             if event_type == "error":
                 raise RuntimeError(payload.get("message", "Unknown streaming error."))
             if event_type == "chunk":
-                text = payload.get("text", "")
-                if text:
+                chunk_str = payload.get("chunk", "")
+                if chunk_str:
                     chunk_count += 1
                     now = time.perf_counter()
                     print(
                         f"[DBG][stream_question] chunk #{chunk_count} "
                         f"t={(now - t_client_start):.3f}s "
-                        f"len={len(text)} repr={text!r}",
+                        f"len={len(chunk_str)} repr={chunk_str!r}",
                         flush=True,
                     )
-                    yield text
+                    yield payload
+            elif event_type == "metadata":
+                yield payload
         else:
             line_buf.append(byte)
 

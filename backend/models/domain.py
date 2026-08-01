@@ -1,5 +1,6 @@
 """Domain models for backend services."""
 
+from typing import Literal
 from pydantic import BaseModel, Field
 
 
@@ -24,6 +25,32 @@ class RetrievedChunk(BaseModel):
     """Represents a chunk retrieved from the database, wrapped with retrieval metadata."""
 
     chunk: DocumentChunk = Field(..., description="The original document chunk")
+    document_id: str = Field(..., description="The ID of the document this chunk belongs to")
     filename: str = Field(..., description="The name of the file this chunk belongs to")
     distance: float = Field(..., description="Cosine distance from the query embedding")
 
+
+class RetrievalStats(BaseModel):
+    """Lightweight retrieval statistics."""
+
+    retrieved: int
+    after_threshold: int
+    duplicates_removed: int
+    top_k: int
+
+
+class RetrievalMetadata(BaseModel):
+    """Encapsulates retrieval results and statistics."""
+
+    retrieved_chunks: list[RetrievedChunk] = Field(..., description="The final chunks used for the prompt")
+    stats: RetrievalStats = Field(..., description="Retrieval statistics")
+
+
+class StreamEvent(BaseModel):
+    """Represents a single typed event in the streaming pipeline."""
+
+    type: Literal["chunk", "metadata", "done", "error"]
+    
+    chunk: str | None = None
+    metadata: RetrievalMetadata | None = None
+    message: str | None = None

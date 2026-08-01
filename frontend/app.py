@@ -173,16 +173,28 @@ def _render_conversation_container() -> None:
                 st.markdown(pending)
 
             with st.chat_message("assistant"):
-                full_answer = st.write_stream(
-                    stream_question(
+                full_answer = ""
+                retrieval_metadata = None
+
+                def _stream_wrapper():
+                    nonlocal full_answer, retrieval_metadata
+                    stream = stream_question(
                         session_id=st.session_state.session_id,
                         question=pending,
                     )
-                )
+                    for event in stream:
+                        if event.get("type") == "chunk":
+                            chunk_text = event.get("chunk", "")
+                            full_answer += chunk_text
+                            yield chunk_text
+                        elif event.get("type") == "metadata":
+                            retrieval_metadata = event.get("metadata")
+
+                st.write_stream(_stream_wrapper())
 
             if full_answer:
                 st.session_state.messages.append(
-                    {"question": pending, "answer": str(full_answer)}
+                    {"question": pending, "answer": full_answer, "metadata": retrieval_metadata}
                 )
 
         except ValueError as error:

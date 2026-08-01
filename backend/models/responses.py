@@ -1,6 +1,7 @@
 """Response models for backend API endpoints."""
 
 from pydantic import BaseModel, Field
+from backend.models.domain import RetrievalMetadata
 
 
 class ChatResponse(BaseModel):
@@ -8,6 +9,7 @@ class ChatResponse(BaseModel):
 
     question: str = Field(..., description="Submitted question")
     answer: str = Field(..., description="Generated answer")
+    metadata: RetrievalMetadata | None = Field(default=None, description="Retrieval metadata")
 
 
 class ConversationSummary(BaseModel):
