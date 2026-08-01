@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 
 from backend.models.requests import ChatRequest
 from backend.models.responses import ChatResponse
+from backend.models.domain import StreamEvent
 from backend.services.chat_service import submit_question, stream_answer
 
 
@@ -88,7 +89,7 @@ async def _sse_generator(
     try:
         # Run the sync generator in a thread.  We collect chunks via a queue
         # so the async generator can yield them on the event loop as they arrive.
-        queue: asyncio.Queue[str | None] = asyncio.Queue()
+        queue: asyncio.Queue[StreamEvent | None] = asyncio.Queue()
 
         async def _producer() -> None:
             """Drain stream_answer() in a thread and push chunks to the queue."""
@@ -110,7 +111,7 @@ async def _sse_generator(
                     print(
                         f"[DBG][_producer] run_in_executor returned in "
                         f"{(t_after - t_before) * 1000:.1f}ms  "
-                        f"chunk={'None' if chunk is None else repr(chunk[:40])}",
+                        f"chunk={'None' if chunk is None else chunk.type}",
                         flush=True,
                     )
                     await queue.put(chunk)
@@ -124,8 +125,8 @@ async def _sse_generator(
         while True:
             item = await queue.get()
             if item is None:
-                # Stream finished normally.
-                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                done_event = StreamEvent(type="done")
+                yield f"data: {done_event.model_dump_json(exclude_none=True)}\n\n"
                 print(
                     f"[DBG][_sse_generator] done event sent at "
                     f"t={(time.perf_counter() - t_sse_start):.3f}s "
@@ -138,15 +139,16 @@ async def _sse_generator(
             sse_chunk_count += 1
             now = time.perf_counter()
             print(
-                f"[DBG][_sse_generator] yielding SSE chunk #{sse_chunk_count} "
-                f"t={(now - t_sse_start):.3f}s repr={item!r}",
+                f"[DBG][_sse_generator] yielding SSE event #{sse_chunk_count} "
+                f"t={(now - t_sse_start):.3f}s type={item.type}",
                 flush=True,
             )
-            yield f"data: {json.dumps({'type': 'chunk', 'text': item})}\n\n"
+            yield f"data: {item.model_dump_json(exclude_none=True)}\n\n"
 
         await producer_task
 
-    except ValueError as error:
-        yield f"data: {json.dumps({'type': 'error', 'message': str(error)})}\n\n"
-    except RuntimeError as error:
-        yield f"data: {json.dumps({'type': 'error', 'message': str(error)})}\n\n"
+    except Exception as error:
+        import traceback
+        traceback.print_exc()
+        err_event = StreamEvent(type="error", message=str(error))
+        yield f"data: {err_event.model_dump_json(exclude_none=True)}\n\n"

@@ -28,8 +28,9 @@ MAX_UPLOAD_SIZE = int(os.getenv("MAX_UPLOAD_SIZE", str(5 * 1024 * 1024)))
 RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "1000"))
 RAG_CHUNK_OVERLAP = int(os.getenv("RAG_CHUNK_OVERLAP", "200"))
 
-# RAG Phase 3 configuration
+# RAG Phase 3 & 4 configuration
 TOP_K_RETRIEVAL = int(os.getenv("TOP_K_RETRIEVAL", "5"))
+MAX_COSINE_DISTANCE = float(os.getenv("MAX_COSINE_DISTANCE", "0.6"))
 
 DEFAULT_SYSTEM_PROMPT = """
 You are an expert programming assistant.

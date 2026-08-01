@@ -2,7 +2,7 @@
 
 An AI-powered coding tutor that helps learners understand code through natural language conversations.
 
-The application allows users to upload one or more source code files, ask questions about them, and receive explanations powered by Azure AI Foundry. It is built using a modular, production-style architecture with FastAPI, Streamlit, and Supabase. The project is currently implementing Retrieval-Augmented Generation (RAG), with the document chunking pipeline completed and semantic retrieval under active development.
+The application allows users to upload one or more source code files, ask questions about them, and receive explanations powered by Azure AI Foundry. It is built using a modular, production-style architecture with FastAPI, Streamlit, and Supabase. The project now implements a complete Retrieval-Augmented Generation (RAG) pipeline with document chunking, embeddings, semantic retrieval, and explainable AI responses.
 
 ---
 
@@ -19,8 +19,15 @@ The application allows users to upload one or more source code files, ask questi
 - 🧱 Clean layered architecture (API → Services → Database)
 - 🐳 Fully Dockerized with Docker Compose
 - ☁️ Supabase PostgreSQL persistence
-- 🚀 Incremental RAG architecture with semantic retrieval in progress
-
+- 🚀 Complete RAG pipeline with explainable responses
+- 🧩 Automatic document chunking
+- 🧠 Azure OpenAI embeddings
+- 🔍 Semantic vector search (pgvector)
+- 📚 Retrieval-Augmented Generation (RAG)
+- 📌 Source citations
+- 🔎 Retrieval transparency
+- 🛠 Debug retrieval mode
+- 📊 Retrieval quality metrics
 ---
 
 # Supported File Types
@@ -126,13 +133,19 @@ MyAICodingTutor/
      API Routes       Service Layer     Database Layer
                            │
                            ▼
-                     Azure AI Foundry
+               ┌────────────────────────┐
+               │   Retrieval Pipeline   │
+               └────────────────────────┘
+                           │
+         ┌─────────────────┼─────────────────┐
+         ▼                 ▼                 ▼
+    Chunk Service    Embedding Service   Retrieval Service
                            │
                            ▼
-                 Supabase PostgreSQL
+                    Azure AI Foundry
                            │
                            ▼
-              Document Chunks (RAG Foundation)
+               Supabase PostgreSQL + pgvector
 ```
 
 ---
@@ -162,6 +175,10 @@ Chunk Service
 
 ↓
 
+Embedding Service
+
+↓
+
 Supabase Database
 
 ↓
@@ -169,6 +186,8 @@ Supabase Database
 Documents
 +
 Document Chunks
++
+Vector Embeddings
 ```
 
 ---
@@ -180,7 +199,15 @@ User Question
 
 ↓
 
-Retrieve Session Documents
+Generate Query Embedding
+
+↓
+
+pgvector Semantic Search
+
+↓
+
+Retrieve Top-K Relevant Chunks
 
 ↓
 
@@ -192,11 +219,11 @@ Azure AI Foundry
 
 ↓
 
-Streaming Assistant Response
+Streaming Response
 
 ↓
 
-Conversation Saved
+Source Citations & Retrieval Metadata
 ```
 
 ---
@@ -288,6 +315,7 @@ sequence_number
 start_offset
 end_offset
 content
+embedding
 created_at
 ```
 
@@ -298,8 +326,7 @@ Each uploaded document is automatically divided into overlapping chunks using a 
 - Word boundaries
 - Character boundaries (fallback)
 
-The resulting chunks form the foundation of the Retrieval-Augmented Generation (RAG) pipeline and will be embedded and indexed in later development phases.
-
+The resulting chunks form the foundation of the Retrieval-Augmented Generation (RAG) pipeline and are embedded and indexed for semantic retrieval.
 ---
 
 # Backend Architecture
@@ -336,7 +363,8 @@ Responsible for:
 
 - Upload workflow
 - Document chunking
-- Chat orchestration
+- Embedding generation
+- Retrieval orchestration
 - Prompt construction
 - Azure AI interaction
 
@@ -350,6 +378,7 @@ Responsible only for:
 
 - CRUD operations
 - Supabase queries
+- pgvector similarity search
 - Data persistence
 
 Contains no business logic.
@@ -481,10 +510,15 @@ The project follows several architectural principles:
 - Automatic document chunking
 - Hierarchical text splitting
 - Jupyter Notebook parsing
+- Azure embeddings
+- Semantic retrieval
+- Source citations
+- Retrieval transparency
+- Debug retrieval
+- Retrieval statistics
 - Docker deployment
 - Azure AI integration
 - Supabase persistence
-
 ---
 
 # Future Roadmap
@@ -514,9 +548,9 @@ Implemented:
 
 ---
 
-## 🚧 Phase 3 — Semantic Retrieval (In Progress)
+## ✅ Phase 3 — Semantic Retrieval (Completed)
 
-Planned:
+Implemented:
 
 - Embed user questions
 - Vector similarity search
@@ -525,16 +559,30 @@ Planned:
 
 ---
 
-## ⏳ Phase 4 — Context-Aware Responses
+## ✅ Phase 4 — Explainable RAG (Completed)
 
-Planned:
+Implemented:
 
 - Prompt augmentation
 - Ground responses using retrieved chunks
 - Source citations
+- Retrieval transparency
+- Debug retrieval
 - Reduce hallucinations
 
 ---
+
+## 🚀 Phase 5 — Advanced Retrieval (Planned)
+
+Planned:
+
+- Hybrid search
+- Cross-file retrieval diversification
+- Reranking
+- Adaptive retrieval
+- Notebook-aware chunking
+- Repository uploads
+- Inline clickable citations
 
 # Learning Objectives
 
@@ -554,7 +602,12 @@ This project was developed to gain hands-on experience with:
 - Document chunking
 - Vector databases
 - Semantic search
-
+- Retrieval-Augmented Generation (RAG)
+- Document chunking
+- Vector embeddings
+- Semantic search
+- Explainable AI
+- Streaming APIs (SSE)
 ---
 
 # License

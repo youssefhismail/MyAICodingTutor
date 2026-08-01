@@ -20,7 +20,7 @@ def build_prompt(
 ) -> str:
     history_text = _format_chat_history(chat_history)
 
-    context = ""
+    context_chunks = []
     for r_chunk in retrieved_chunks:
         filename = r_chunk.filename
         seq = r_chunk.chunk.sequence_number
@@ -28,14 +28,18 @@ def build_prompt(
         end_off = r_chunk.chunk.end_offset
         content = r_chunk.chunk.content.strip()
         if content:
-            context += (
-                f"\nFile: {filename}\n"
-                f"Chunk: {seq}\n"
-                f"Start Offset: {start_off}\n"
-                f"End Offset: {end_off}\n"
-                f"{content}\n"
-                f"----------------\n"
+            xml_block = (
+                f'  <document filename="{filename}" chunk="{seq}" '
+                f'start_offset="{start_off}" end_offset="{end_off}">\n'
+                f'{content}\n'
+                f'  </document>'
             )
+            context_chunks.append(xml_block)
+
+    if context_chunks:
+        context = "<context>\n\n" + "\n\n".join(context_chunks) + "\n\n</context>"
+    else:
+        context = "<context></context>"
 
     prompt = f"""SYSTEM INSTRUCTIONS
 {system_prompt}
